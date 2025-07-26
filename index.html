@@ -1,0 +1,715 @@
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Voice Agent - Çiçek (Realtime)</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            color: white;
+        }
+
+        .container {
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(20px);
+            border-radius: 20px;
+            padding: 40px;
+            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+            text-align: center;
+            max-width: 500px;
+            width: 90%;
+        }
+
+        .brand {
+            margin-bottom: 30px;
+        }
+
+        .brand h1 {
+            font-size: 2.5em;
+            margin-bottom: 10px;
+            background: linear-gradient(45deg, #ff9a9e, #fecfef);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+        }
+
+        .brand p {
+            font-size: 1.2em;
+            opacity: 0.8;
+        }
+
+        .realtime-badge {
+            display: inline-block;
+            background: linear-gradient(45deg, #00d4aa, #00a8ff);
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 0.9em;
+            font-weight: bold;
+            margin-top: 10px;
+        }
+
+        .voice-controls {
+            margin: 40px 0;
+        }
+
+        .mic-button {
+            width: 120px;
+            height: 120px;
+            border-radius: 50%;
+            border: none;
+            background: linear-gradient(135deg, #ff6b6b, #ee5a5a);
+            color: white;
+            font-size: 3em;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 10px 30px rgba(238, 90, 90, 0.4);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 auto;
+        }
+
+        .mic-button:hover {
+            transform: scale(1.05);
+            box-shadow: 0 15px 40px rgba(238, 90, 90, 0.6);
+        }
+
+        .mic-button.connecting {
+            background: linear-gradient(135deg, #ffd43b, #fab005);
+        }
+
+        .mic-button.connected {
+            background: linear-gradient(135deg, #51cf66, #40c057);
+            animation: pulse 2s infinite;
+        }
+
+        .mic-button.speaking {
+            background: linear-gradient(135deg, #845ec2, #6c5ce7);
+            animation: pulse 1s infinite;
+        }
+
+        @keyframes pulse {
+            0% {
+                box-shadow: 0 0 0 0 rgba(81, 207, 102, 0.7);
+            }
+            70% {
+                box-shadow: 0 0 0 20px rgba(81, 207, 102, 0);
+            }
+            100% {
+                box-shadow: 0 0 0 0 rgba(81, 207, 102, 0);
+            }
+        }
+
+        .status {
+            margin: 30px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            font-size: 1.1em;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .status.error {
+            background: rgba(255, 107, 107, 0.2);
+            border: 1px solid rgba(255, 107, 107, 0.3);
+        }
+
+        .status.success {
+            background: rgba(81, 207, 102, 0.2);
+            border: 1px solid rgba(81, 207, 102, 0.3);
+        }
+
+        .status.warning {
+            background: rgba(255, 212, 59, 0.2);
+            border: 1px solid rgba(255, 212, 59, 0.3);
+        }
+
+        .config {
+            margin-top: 30px;
+            text-align: left;
+        }
+
+        .config label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 600;
+        }
+
+        .config input {
+            width: 100%;
+            padding: 10px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            color: white;
+            font-size: 1em;
+            margin-bottom: 15px;
+        }
+
+        .config input::placeholder {
+            color: rgba(255, 255, 255, 0.6);
+        }
+
+        .config input:focus {
+            outline: none;
+            background: rgba(255, 255, 255, 0.2);
+        }
+
+        .volume-indicator {
+            width: 100%;
+            height: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 4px;
+            margin: 20px 0;
+            overflow: hidden;
+        }
+
+        .volume-bar {
+            height: 100%;
+            width: 0%;
+            background: linear-gradient(90deg, #51cf66, #ffd43b, #ff6b6b);
+            transition: width 0.1s ease;
+        }
+
+        .conversation {
+            margin-top: 20px;
+            max-height: 200px;
+            overflow-y: auto;
+            text-align: left;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 10px;
+        }
+
+        .message {
+            margin-bottom: 10px;
+            padding: 8px;
+            border-radius: 8px;
+            font-size: 0.9em;
+        }
+
+        .message.user {
+            background: rgba(102, 126, 234, 0.3);
+            margin-left: 20px;
+        }
+
+        .message.assistant {
+            background: rgba(255, 154, 158, 0.3);
+            margin-right: 20px;
+        }
+
+        .controls {
+            margin-top: 20px;
+            display: flex;
+            gap: 10px;
+            justify-content: center;
+        }
+
+        .control-btn {
+            padding: 8px 16px;
+            border: none;
+            border-radius: 8px;
+            background: rgba(255, 255, 255, 0.2);
+            color: white;
+            cursor: pointer;
+            font-size: 0.9em;
+            transition: background 0.3s;
+        }
+
+        .control-btn:hover {
+            background: rgba(255, 255, 255, 0.3);
+        }
+
+        .control-btn:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="brand">
+            <h1>Çiçek</h1>
+            <p>Dijitürk AI Asistanı</p>
+            <div class="realtime-badge">⚡ OpenAI Realtime</div>
+        </div>
+
+        <div class="voice-controls">
+            <button class="mic-button" id="micButton">
+                🎤
+            </button>
+        </div>
+
+        <div class="volume-indicator">
+            <div class="volume-bar" id="volumeBar"></div>
+        </div>
+
+        <div class="status" id="status">
+            Başlamak için mikrofon butonuna basın
+        </div>
+
+        <div class="controls">
+            <button class="control-btn" id="muteBtn" disabled>🔇 Sustur</button>
+            <button class="control-btn" id="forceReplyBtn" disabled>💬 Zorla Yanıt</button>
+            <button class="control-btn" id="clearBtn">🗑️ Temizle</button>
+        </div>
+
+        <div class="conversation" id="conversation" style="display: none;"></div>
+
+        <div class="config">
+            <label for="serverUrl">Proxy Server URL:</label>
+            <input type="text" id="serverUrl" value="ws://localhost:3000" placeholder="ws://localhost:3000">
+            
+            <label for="n8nWebhook">N8N Webhook URL (Opsiyonel):</label>
+            <input type="url" id="n8nWebhook" placeholder="https://your-n8n-instance.com/webhook/...">
+        </div>
+    </div>
+
+    <script>
+        class RealtimeVoiceAgent {
+            constructor() {
+                this.ws = null;
+                this.audioContext = null;
+                this.microphone = null;
+                this.processor = null;
+                this.isConnected = false;
+                this.isListening = false;
+                this.isMuted = false;
+                this.conversationHistory = [];
+                this.audioQueue = [];
+                this.isPlaying = false;
+                
+                // DOM elements
+                this.micButton = document.getElementById('micButton');
+                this.status = document.getElementById('status');
+                this.volumeBar = document.getElementById('volumeBar');
+                this.serverUrlInput = document.getElementById('serverUrl');
+                this.n8nWebhookInput = document.getElementById('n8nWebhook');
+                this.conversation = document.getElementById('conversation');
+                this.muteBtn = document.getElementById('muteBtn');
+                this.forceReplyBtn = document.getElementById('forceReplyBtn');
+                this.clearBtn = document.getElementById('clearBtn');
+                
+                // Event listeners
+                this.micButton.addEventListener('click', () => this.toggleConnection());
+                this.muteBtn.addEventListener('click', () => this.toggleMute());
+                this.forceReplyBtn.addEventListener('click', () => this.forceReply());
+                this.clearBtn.addEventListener('click', () => this.clearConversation());
+                
+                // Load saved settings
+                const savedServerUrl = localStorage.getItem('server_url');
+                if (savedServerUrl) {
+                    this.serverUrlInput.value = savedServerUrl;
+                }
+                
+                const savedWebhook = localStorage.getItem('n8n_webhook');
+                if (savedWebhook) {
+                    this.n8nWebhookInput.value = savedWebhook;
+                }
+                
+                // Welcome message
+                this.addMessage('assistant', 'Merhaba, ben Dijitürk\'ten Çiçek. Size nasıl yardımcı olabilirim?');
+            }
+            
+            async toggleConnection() {
+                if (!this.isConnected) {
+                    await this.connect();
+                } else {
+                    this.disconnect();
+                }
+            }
+            
+            async connect() {
+                try {
+                    const serverUrl = this.serverUrlInput.value.trim();
+                    if (!serverUrl) {
+                        throw new Error('Proxy Server URL gerekli');
+                    }
+                    
+                    localStorage.setItem('server_url', serverUrl);
+                    if (this.n8nWebhookInput.value.trim()) {
+                        localStorage.setItem('n8n_webhook', this.n8nWebhookInput.value.trim());
+                    }
+                    
+                    this.updateStatus('Proxy server\'a bağlanıyor...', 'warning');
+                    this.micButton.className = 'mic-button connecting';
+                    
+                    this.ws = new WebSocket(serverUrl);
+                    
+                    this.ws.onopen = async () => {
+                        console.log('✅ Connected to proxy server');
+                        this.updateStatus('Mikrofon erişimi isteniyor...', 'warning');
+                        await this.setupAudio();
+                    };
+                    
+                    this.ws.onmessage = (event) => {
+                        try {
+                            const message = JSON.parse(event.data);
+                            this.handleRealtimeMessage(message);
+                        } catch (error) {
+                            console.error('Error parsing message:', error);
+                        }
+                    };
+                    
+                    this.ws.onerror = (error) => {
+                        console.error('WebSocket error:', error);
+                        this.updateStatus('Bağlantı hatası. Proxy server çalışıyor mu?', 'error');
+                        this.disconnect();
+                    };
+                    
+                    this.ws.onclose = (event) => {
+                        console.log('WebSocket closed:', event.code, event.reason);
+                        this.updateStatus('Bağlantı kesildi', 'error');
+                        this.disconnect();
+                    };
+                    
+                } catch (error) {
+                    console.error('Connection error:', error);
+                    this.updateStatus(`Bağlantı hatası: ${error.message}`, 'error');
+                    this.disconnect();
+                }
+            }
+            
+            async setupAudio() {
+                try {
+                    const stream = await navigator.mediaDevices.getUserMedia({
+                        audio: {
+                            sampleRate: 24000,
+                            channelCount: 1,
+                            echoCancellation: true,
+                            noiseSuppression: true,
+                            autoGainControl: true
+                        }
+                    });
+                    
+                    this.audioContext = new AudioContext({ sampleRate: 24000 });
+                    this.microphone = this.audioContext.createMediaStreamSource(stream);
+                    
+                    // Analyser for volume indicator only
+                    const analyser = this.audioContext.createAnalyser();
+                    analyser.fftSize = 256;
+                    this.microphone.connect(analyser);
+                    
+                    this.startVolumeIndicator(analyser);
+                    
+                    // Create processor for capturing audio
+                    this.processor = this.audioContext.createScriptProcessor(4096, 1, 1);
+                    
+                    // Silent output to avoid feedback
+                    this.processor.onaudioprocess = (event) => {
+                        if (this.isConnected && this.ws.readyState === WebSocket.OPEN && !this.isMuted) {
+                            const inputData = event.inputBuffer.getChannelData(0);
+                            const pcm16 = this.convertToPCM16(inputData);
+                            const base64Audio = btoa(String.fromCharCode(...pcm16));
+                            
+                            this.ws.send(JSON.stringify({
+                                type: 'input_audio_buffer.append',
+                                audio: base64Audio
+                            }));
+                        }
+                        
+                        // Silent output to prevent echo
+                        const outputData = event.outputBuffer.getChannelData(0);
+                        outputData.fill(0);
+                    };
+                    
+                    // Connect microphone to processor only (not to destination)
+                    this.microphone.connect(this.processor);
+                    this.processor.connect(this.audioContext.destination);
+                    
+                    this.isListening = true;
+                    this.updateStatus('🎤 Dinliyorum... Konuşmaya başlayabilirsiniz!', 'success');
+                    this.enableControls();
+                    
+                } catch (error) {
+                    console.error('Audio setup error:', error);
+                    this.updateStatus(`Mikrofon hatası: ${error.message}`, 'error');
+                    this.disconnect();
+                }
+            }
+            
+            startVolumeIndicator(analyser) {
+                const dataArray = new Uint8Array(analyser.frequencyBinCount);
+                
+                const updateVolume = () => {
+                    if (this.isListening) {
+                        analyser.getByteFrequencyData(dataArray);
+                        const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+                        const percentage = (average / 255) * 100;
+                        this.volumeBar.style.width = `${percentage}%`;
+                        requestAnimationFrame(updateVolume);
+                    }
+                };
+                updateVolume();
+            }
+            
+            convertToPCM16(float32Array) {
+                const int16Array = new Int16Array(float32Array.length);
+                for (let i = 0; i < float32Array.length; i++) {
+                    const clampedValue = Math.max(-1, Math.min(1, float32Array[i]));
+                    int16Array[i] = clampedValue * 32767;
+                }
+                return new Uint8Array(int16Array.buffer);
+            }
+            
+            handleRealtimeMessage(message) {
+                console.log('📨 Received:', message.type);
+                
+                switch (message.type) {
+                    case 'connection.ready':
+                        this.isConnected = true;
+                        this.micButton.className = 'mic-button connected';
+                        this.micButton.innerHTML = '⏹️';
+                        console.log('🎉 Realtime API ready!');
+                        break;
+                        
+                    case 'input_audio_buffer.speech_started':
+                        this.updateStatus('🎤 Konuşma algılandı...', 'success');
+                        break;
+                        
+                    case 'input_audio_buffer.speech_stopped':
+                        this.updateStatus('⚙️ İşleniyor...', 'warning');
+                        break;
+                        
+                    case 'response.audio.delta':
+                        this.micButton.className = 'mic-button speaking';
+                        this.queueAudioDelta(message.delta);
+                        break;
+                        
+                    case 'response.audio.done':
+                        this.micButton.className = 'mic-button connected';
+                        this.updateStatus('🎤 Dinliyorum... Konuşmaya devam edebilirsiniz!', 'success');
+                        break;
+                        
+                    case 'input_audio_buffer.committed':
+                        break;
+                        
+                    case 'response.created':
+                        this.updateStatus('💭 AI yanıt hazırlıyor...', 'warning');
+                        break;
+                        
+                    case 'response.done':
+                        this.triggerN8NWebhook(message);
+                        break;
+                        
+                    case 'conversation.item.input_audio_transcription.completed':
+                        if (message.transcript) {
+                            this.addMessage('user', message.transcript);
+                        }
+                        break;
+                        
+                    case 'response.audio_transcript.done':
+                        if (message.transcript) {
+                            this.addMessage('assistant', message.transcript);
+                        }
+                        break;
+                        
+                    case 'error':
+                        console.error('Realtime API Error:', message);
+                        this.updateStatus(`API Hatası: ${message.error?.message || 'Bilinmeyen hata'}`, 'error');
+                        break;
+                        
+                    case 'connection.closed':
+                        this.updateStatus('OpenAI bağlantısı kesildi', 'error');
+                        this.disconnect();
+                        break;
+                }
+            }
+            
+            queueAudioDelta(audioData) {
+                this.audioQueue.push(audioData);
+                if (!this.isPlaying) {
+                    this.playNextAudioChunk();
+                }
+            }
+            
+            async playNextAudioChunk() {
+                if (this.audioQueue.length === 0) {
+                    this.isPlaying = false;
+                    return;
+                }
+                
+                this.isPlaying = true;
+                const audioData = this.audioQueue.shift();
+                
+                if (!this.audioContext) {
+                    this.isPlaying = false;
+                    return;
+                }
+                
+                try {
+                    const binaryString = atob(audioData);
+                    const bytes = new Uint8Array(binaryString.length);
+                    for (let i = 0; i < binaryString.length; i++) {
+                        bytes[i] = binaryString.charCodeAt(i);
+                    }
+                    
+                    const int16Array = new Int16Array(bytes.buffer);
+                    const float32Array = new Float32Array(int16Array.length);
+                    
+                    for (let i = 0; i < int16Array.length; i++) {
+                        float32Array[i] = int16Array[i] / 32768.0;
+                    }
+                    
+                    const audioBuffer = this.audioContext.createBuffer(1, float32Array.length, 24000);
+                    audioBuffer.getChannelData(0).set(float32Array);
+                    
+                    const source = this.audioContext.createBufferSource();
+                    source.buffer = audioBuffer;
+                    source.connect(this.audioContext.destination);
+                    
+                    source.onended = () => {
+                        this.playNextAudioChunk();
+                    };
+                    
+                    source.start();
+                    
+                } catch (error) {
+                    console.error('Audio playback error:', error);
+                    this.isPlaying = false;
+                }
+            }
+            
+            toggleMute() {
+                this.isMuted = !this.isMuted;
+                this.muteBtn.textContent = this.isMuted ? '🔊 Aç' : '🔇 Sustur';
+                this.updateStatus(this.isMuted ? '🔇 Mikrofon kapalı' : '🎤 Mikrofon açık', 'warning');
+            }
+            
+            forceReply() {
+                if (this.ws && this.ws.readyState === WebSocket.OPEN) {
+                    this.ws.send(JSON.stringify({
+                        type: 'response.create',
+                        response: {
+                            modalities: ['text', 'audio'],
+                            instructions: 'Lütfen kısa bir yanıt verin.'
+                        }
+                    }));
+                    this.updateStatus('💬 Zorla yanıt istendi...', 'warning');
+                }
+            }
+            
+            clearConversation() {
+                this.conversation.innerHTML = '';
+                this.conversation.style.display = 'none';
+                this.conversationHistory = [];
+                this.audioQueue = [];
+                this.isPlaying = false;
+                this.addMessage('assistant', 'Merhaba, ben Dijitürk\'ten Çiçek. Size nasıl yardımcı olabilirim?');
+            }
+            
+            async triggerN8NWebhook(data) {
+                const webhookUrl = this.n8nWebhookInput.value.trim();
+                if (!webhookUrl) return;
+                
+                try {
+                    await fetch(webhookUrl, {
+                        method: 'POST',
+                        headers: {
+                            'Content-Type': 'application/json',
+                        },
+                        body: JSON.stringify({
+                            type: 'openai_realtime_response',
+                            timestamp: new Date().toISOString(),
+                            response: data,
+                            conversation_history: this.conversationHistory
+                        })
+                    });
+                } catch (error) {
+                    console.error('N8N webhook error:', error);
+                }
+            }
+            
+            addMessage(sender, text) {
+                this.conversationHistory.push({
+                    role: sender === 'user' ? 'user' : 'assistant',
+                    content: text,
+                    timestamp: new Date().toISOString()
+                });
+                
+                const messageDiv = document.createElement('div');
+                messageDiv.className = `message ${sender}`;
+                messageDiv.innerHTML = `<strong>${sender === 'user' ? 'Siz' : 'Çiçek'}:</strong> ${text}`;
+                
+                this.conversation.appendChild(messageDiv);
+                this.conversation.style.display = 'block';
+                this.conversation.scrollTop = this.conversation.scrollHeight;
+                
+                while (this.conversation.children.length > 20) {
+                    this.conversation.removeChild(this.conversation.firstChild);
+                }
+            }
+            
+            enableControls() {
+                this.muteBtn.disabled = false;
+                this.forceReplyBtn.disabled = false;
+            }
+            
+            disableControls() {
+                this.muteBtn.disabled = true;
+                this.forceReplyBtn.disabled = true;
+                this.muteBtn.textContent = '🔇 Sustur';
+                this.isMuted = false;
+            }
+            
+            disconnect() {
+                this.isConnected = false;
+                this.isListening = false;
+                
+                if (this.ws) {
+                    this.ws.close();
+                    this.ws = null;
+                }
+                
+                if (this.processor) {
+                    this.processor.disconnect();
+                    this.processor = null;
+                }
+                
+                if (this.microphone) {
+                    this.microphone.disconnect();
+                    this.microphone = null;
+                }
+                
+                if (this.audioContext) {
+                    this.audioContext.close();
+                    this.audioContext = null;
+                }
+                
+                this.micButton.className = 'mic-button';
+                this.micButton.innerHTML = '🎤';
+                this.volumeBar.style.width = '0%';
+                this.disableControls();
+                this.audioQueue = [];
+                this.isPlaying = false;
+                this.updateStatus('Durduruldu. Tekrar başlamak için mikrofon butonuna basın.');
+            }
+            
+            updateStatus(message, type = '') {
+                this.status.textContent = message;
+                this.status.className = `status ${type}`;
+            }
+        }
+        
+        document.addEventListener('DOMContentLoaded', () => {
+            new RealtimeVoiceAgent();
+        });
+    </script>
+</body>
+</html>

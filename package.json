@@ -1,0 +1,22 @@
+{
+  "name": "openai-realtime-proxy",
+  "version": "1.0.0",
+  "description": "OpenAI Realtime API Proxy Server",
+  "main": "realtime-proxy-server.js",
+  "scripts": {
+    "start": "node realtime-proxy-server.js",
+    "dev": "nodemon realtime-proxy-server.js"
+  },
+  "dependencies": {
+    "express": "^4.18.2",
+    "ws": "^8.14.2",
+    "cors": "^2.8.5"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.1"
+  },
+  "keywords": ["openai", "realtime", "websocket", "proxy"],
+  "author": "Your Name",
+  "license": "MIT"
+}
+
